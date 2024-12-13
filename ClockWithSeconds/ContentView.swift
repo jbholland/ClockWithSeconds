@@ -13,15 +13,41 @@ struct ContentView: View {
     @State private var fgColor:Color = .white
     @State private var currentTime: String = "00:00:00"
     @State private var amPm: String = "AM"
-  
-
-     func getCurrentTime() -> String {
+    
+    
+    func getCurrentTime() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat =  is24HourStorage ? "H:mm:ss" : "h:mm:ss"
         
-        return formatter.string(from: Date())
+        let extractedExpr: String = formatter.string(from: Date())
+        var fixedExpr: String = extractedExpr
         
-        //.replacingOccurrences(of: "0", with: "O")
+        if !is24HourStorage {
+            // don't want 24 hour, need to clean it up if
+            // the user has 24 hour format selected in Phone-Settings
+            // This is ugly! DateFormatter gives more precedence
+            // to phone settings than to passed in format string
+            // an ugly hack to subtract 12 from the hour if need be
+            
+            if let range = fixedExpr.range(of: "\\d+", options: .regularExpression) {
+                let numberSubstring = fixedExpr[range]
+                
+                // Step 2: Convert substring to a number
+                if let number = Int(numberSubstring) {
+                    // Step 3: Modify the number
+                    var modifiedNumber: Int = number
+                    if number > 12 {
+                         modifiedNumber = number - 12
+                    }
+                    
+                    
+                    // Step 4: Replace the substring with the modified number
+                    fixedExpr.replaceSubrange(range, with: "\(modifiedNumber)")
+                }
+            }
+        }
+        
+        return fixedExpr
     }
     static func getAmPm() -> String {
         let formatter = DateFormatter()
@@ -90,16 +116,16 @@ struct ContentView: View {
 
 struct SettingsView: View {
     
-@AppStorage("is24Hour") private var settingsIs24Hour: Bool = false
-
+    @AppStorage("is24Hour") private var settingsIs24Hour: Bool = false
+    
     var body: some View {
         Text("Settings")
             .font(.largeTitle)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
         Toggle("24 Hour:", isOn: $settingsIs24Hour)
-            
-
+        
+        
         
     }
 }
